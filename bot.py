@@ -1,14 +1,12 @@
-# bot.py
-import nextcord
-from nextcord.ext import commands
+from flask import Flask, request, session, jsonify
 import sqlite3
+import decimal
 import logging
-import datetime
-import re
-from dateutil.parser import parse
+from datetime import datetime
+import dateparser
 
-bot = commands.Bot(command_prefix="/")
-logging.basicConfig(level=logging.INFO)
+app = Flask(__name__)
+app.secret_key = "YOUR_SECRET_KEY"
 
 
 def get_db():
@@ -16,41 +14,43 @@ def get_db():
     return con
 
 
-@bot.event
-async def on_ready():
-    logging.info(f"Logged in as {bot.user.name}")
+@app.route("/create_market", methods=["POST"])
+def create_market():
+    data = request.get_json()
+    name = data["name"]
+    user_id = session["user_id"]
 
-
-@bot.command()
-async def create_market(ctx, name: str):
+    # Function logic goes here
     try:
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO markets (name, creator_id) VALUES (?, ?)",
-            (name, ctx.author.id),
+            (name, user_id),
         )
         market_id = cursor.lastrowid
         conn.commit()
-        await ctx.send(f"Market created with ID: {market_id}")
+        return jsonify({"message": f"Market created with ID: {market_id}"})
     except Exception as e:
         logging.error(f"Error creating market: {str(e)}")
         conn.rollback()
-        await ctx.send("An error occurred while creating the market.")
+        return jsonify({"error": "An error occurred while creating the market."}), 500
     finally:
         conn.close()
 
 
-@bot.command()
-async def order(
-    ctx,
-    order_type: str,
-    order_direction: str,
-    market_id: int,
-    quantity: int,
-    price: str,
-    duration: str = None,
-):
+@app.route("/order", methods=["POST"])
+def order():
+    data = request.get_json()
+    order_type = data["order_type"]
+    order_direction = data["order_direction"]
+    market_id = data["market_id"]
+    quantity = data["quantity"]
+    price = data["price"]
+    duration = data.get("duration")
+    user_id = session["user_id"]
+
+    # Function logic goes here
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -85,10 +85,14 @@ async def order(
                                 hour=23, minute=59, second=59
                             )
                 except ValueError as e:
-                    await ctx.send(
-                        f"Invalid duration format: {str(e)}. Please provide a valid relative duration (e.g., +1y3m3w9d3h45m3s) or an ISO date (e.g., 2023-04-03)."
+                    return (
+                        jsonify(
+                            {
+                                "error": f"Invalid duration format: {str(e)}. Please provide a valid relative duration (e.g., +1y3m3w9d3h45m3s) or an ISO date (e.g., 2023-04-03)."
+                            }
+                        ),
+                        400,
                     )
-                    return
         # Begin a transaction
         cursor.execute("BEGIN TRANSACTION")
 
@@ -96,9 +100,11 @@ async def order(
         cursor.execute("SELECT id FROM markets WHERE id = ?", (market_id,))
         market = cursor.fetchone()
         if not market:
-            await ctx.send(f"Market with ID {market_id} does not exist.")
             cursor.execute("ROLLBACK")
-            return
+            return (
+                jsonify({"error": f"Market with ID {market_id} does not exist."}),
+                404,
+            )
 
         # Insert the order into the orders table
         cursor.execute(
@@ -108,7 +114,7 @@ async def order(
         """,
             (
                 market_id,
-                ctx.author.id,
+                user_id,
                 order_type,
                 order_direction,
                 price_cents,
@@ -181,8 +187,8 @@ async def order(
             """,
                 (
                     market_id,
-                    ctx.author.id if order_direction == "buy" else matching_user_id,
-                    matching_user_id if order_direction == "buy" else ctx.author.id,
+                    user_id if order_direction == "buy" else matching_user_id,
+                    matching_user_id if order_direction == "buy" else user_id,
                     matching_order_price_cents,
                     trade_quantity,
                 ),
@@ -198,17 +204,22 @@ async def order(
             cursor.execute("DELETE from ORDERS where id = ?", order_id)
 
         conn.commit()
-        await ctx.send("Order placed successfully")
+        return jsonify({"message": "Order placed successfully"})
     except Exception as e:
         logging.error(f"Error placing order: {str(e)}")
         conn.rollback()
-        await ctx.send("An error occurred while placing the order.")
+        return jsonify({"error": "An error occurred while placing the order."}), 500
     finally:
         conn.close()
 
 
-@bot.command()
-async def cancel_order(ctx, order_id: int):
+@app.route("/cancel_order", methods=["POST"])
+def cancel_order():
+    data = request.get_json()
+    order_id = data["order_id"]
+    user_id = session["user_id"]
+
+    # Function logic goes here
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -219,47 +230,59 @@ async def cancel_order(ctx, order_id: int):
         # Check if the order exists and belongs to the user
         cursor.execute(
             "SELECT id FROM orders WHERE id = ? AND user_id = ?",
-            (order_id, ctx.author.id),
+            (order_id, user_id),
         )
         order = cursor.fetchone()
         if not order:
-            await ctx.send(
-                f"Order with ID {order_id} does not exist or does not belong to you."
-            )
             cursor.execute("ROLLBACK")
-            return
+            return (
+                jsonify(
+                    {
+                        "error": f"Order with ID {order_id} does not exist or does not belong to you."
+                    }
+                ),
+                404,
+            )
 
         # Delete the order from the orders table
         cursor.execute("DELETE FROM orders WHERE id = ?", (order_id,))
 
         conn.commit()
-        await ctx.send("Order cancelled successfully")
+        return jsonify({"message": "Order cancelled successfully"})
     except Exception as e:
         logging.error(f"Error cancelling order: {str(e)}")
         conn.rollback()
-        await ctx.send("An error occurred while cancelling the order.")
+        return jsonify({"error": "An error occurred while cancelling the order."}), 500
     finally:
         conn.close()
 
 
-@bot.command(name="pnl")
-async def pnl(ctx, user: str = "me", market: str = "all"):
+@app.route("/pnl", methods=["GET"])
+def pnl():
+    user = request.args.get("user", "me")
+    market = request.args.get("market", "all")
+    user_id = session["user_id"]
+
+    # Function logic goes here
     conn = sqlite3.connect("market.db")
     c = conn.cursor()
 
-    user_id = None
     if user == "me":
-        user_id = ctx.author.id
+        user_id = user_id
     elif user.startswith("<@") and user.endswith(">"):
         user_id = int(user[2:-1].replace("!", ""))
     else:
         try:
             user_id = int(user)
         except ValueError:
-            await ctx.send(
-                "Invalid user input. Please provide 'me', a user ID, or mention a user."
+            return (
+                jsonify(
+                    {
+                        "error": "Invalid user input. Please provide 'me', a user ID, or mention a user."
+                    }
+                ),
+                400,
             )
-            return
 
     if market == "all":
         market_id = None
@@ -267,18 +290,24 @@ async def pnl(ctx, user: str = "me", market: str = "all"):
         try:
             market_id = int(market)
         except ValueError:
-            await ctx.send(
-                "Invalid market input. Please provide a valid market ID or 'all'."
+            return (
+                jsonify(
+                    {
+                        "error": "Invalid market input. Please provide a valid market ID or 'all'."
+                    }
+                ),
+                400,
             )
-            return
 
     if market_id is not None:
         # Check if the market exists
         c.execute("SELECT id FROM markets WHERE id = ?", (market_id,))
         market = c.fetchone()
         if market is None:
-            await ctx.send(f"Market with ID {market_id} does not exist.")
-            return
+            return (
+                jsonify({"error": f"Market with ID {market_id} does not exist."}),
+                404,
+            )
 
     # Calculate PNL for the specified user(s) and market(s)
     if user_id is not None and market_id is not None:
@@ -313,19 +342,31 @@ async def pnl(ctx, user: str = "me", market: str = "all"):
     conn.close()
 
     if len(result) == 0:
-        await ctx.send("No PNL data found for the specified user(s) and market(s).")
+        return (
+            jsonify(
+                {"error": "No PNL data found for the specified user(s) and market(s)."}
+            ),
+            404,
+        )
     else:
         if user_id is not None:
             pnl = result[0][0]
-            await ctx.send(f"PNL for user {user}: ${pnl:.2f}")
+            return jsonify({"pnl": f"PNL for user {user}: ${pnl:.2f}"})
         else:
-            await ctx.send("PNL for all users:")
+            pnl_data = []
             for row in result:
-                await ctx.send(f"User ID {row[0]}: ${row[1]:.2f}")
+                pnl_data.append({"user_id": row[0], "pnl": f"${row[1]:.2f}"})
+            return jsonify({"pnl_data": pnl_data})
 
 
-@bot.command(name="resolve_market")
-async def resolve_market(ctx, market_id: int, outcome: str, payout_dollars: float):
+@app.route("/resolve_market", methods=["POST"])
+def resolve_market():
+    data = request.get_json()
+    market_id = data["market_id"]
+    outcome = data["outcome"]
+    payout_dollars = data["payout_dollars"]
+
+    # Function logic goes here
     payout_cents = int(payout_dollars * 100)
 
     conn = sqlite3.connect("market.db")
@@ -336,12 +377,15 @@ async def resolve_market(ctx, market_id: int, outcome: str, payout_dollars: floa
     market = c.fetchone()
 
     if market is None:
-        await ctx.send(f"Market with ID {market_id} does not exist.")
-        return
+        return jsonify({"error": f"Market with ID {market_id} does not exist."}), 404
 
     if market[1] is not None:
-        await ctx.send(f"Market with ID {market_id} has already been resolved.")
-        return
+        return (
+            jsonify(
+                {"error": f"Market with ID {market_id} has already been resolved."}
+            ),
+            400,
+        )
 
     # Update the market with the resolution details
     c.execute(
@@ -349,12 +393,14 @@ async def resolve_market(ctx, market_id: int, outcome: str, payout_dollars: floa
         (outcome, payout_cents, market_id),
     )
     conn.commit()
-
-    await ctx.send(
-        f"Market with ID {market_id} has been resolved with outcome '{outcome}' and a payout of ${payout_dollars:.2f}."
-    )
-
     conn.close()
 
+    return jsonify(
+        {
+            "message": f"Market with ID {market_id} has been resolved with outcome '{outcome}' and a payout of ${payout_dollars:.2f}."
+        }
+    )
 
-bot.run("YOUR_BOT_TOKEN")
+
+if __name__ == "__main__":
+    app.run()
