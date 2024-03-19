@@ -1,6 +1,6 @@
 # bot.py
-import discord
-from discord.ext import commands
+import nextcord
+from nextcord.ext import commands
 import sqlite3
 import logging
 import datetime
@@ -240,6 +240,121 @@ async def cancel_order(ctx, order_id: int):
         await ctx.send("An error occurred while cancelling the order.")
     finally:
         conn.close()
+
+
+@bot.command(name="pnl")
+async def pnl(ctx, user: str = "me", market: str = "all"):
+    conn = sqlite3.connect("market.db")
+    c = conn.cursor()
+
+    user_id = None
+    if user == "me":
+        user_id = ctx.author.id
+    elif user.startswith("<@") and user.endswith(">"):
+        user_id = int(user[2:-1].replace("!", ""))
+    else:
+        try:
+            user_id = int(user)
+        except ValueError:
+            await ctx.send(
+                "Invalid user input. Please provide 'me', a user ID, or mention a user."
+            )
+            return
+
+    if market == "all":
+        market_id = None
+    else:
+        try:
+            market_id = int(market)
+        except ValueError:
+            await ctx.send(
+                "Invalid market input. Please provide a valid market ID or 'all'."
+            )
+            return
+
+    if market_id is not None:
+        # Check if the market exists
+        c.execute("SELECT id FROM markets WHERE id = ?", (market_id,))
+        market = c.fetchone()
+        if market is None:
+            await ctx.send(f"Market with ID {market_id} does not exist.")
+            return
+
+    # Calculate PNL for the specified user(s) and market(s)
+    if user_id is not None and market_id is not None:
+        c.execute(
+            """
+            SELECT SUM(CASE WHEN t.buyer_id = ? THEN -t.price_cents * t.quantity ELSE t.price_cents * t.quantity END) / 100.0 AS pnl
+            FROM trades t
+            WHERE t.market_id = ? AND (t.buyer_id = ? OR t.seller_id = ?)
+        """,
+            (user_id, market_id, user_id, user_id),
+        )
+    elif user_id is not None:
+        c.execute(
+            """
+            SELECT SUM(CASE WHEN t.buyer_id = ? THEN -t.price_cents * t.quantity ELSE t.price_cents * t.quantity END) / 100.0 AS pnl
+            FROM trades t
+            WHERE t.buyer_id = ? OR t.seller_id = ?
+        """,
+            (user_id, user_id, user_id),
+        )
+    else:
+        c.execute(
+            """
+            SELECT u.id, SUM(CASE WHEN t.buyer_id = u.id THEN -t.price_cents * t.quantity ELSE t.price_cents * t.quantity END) / 100.0 AS pnl
+            FROM trades t
+            JOIN users u ON t.buyer_id = u.id OR t.seller_id = u.id
+            GROUP BY u.id
+        """
+        )
+
+    result = c.fetchall()
+    conn.close()
+
+    if len(result) == 0:
+        await ctx.send("No PNL data found for the specified user(s) and market(s).")
+    else:
+        if user_id is not None:
+            pnl = result[0][0]
+            await ctx.send(f"PNL for user {user}: ${pnl:.2f}")
+        else:
+            await ctx.send("PNL for all users:")
+            for row in result:
+                await ctx.send(f"User ID {row[0]}: ${row[1]:.2f}")
+
+
+@bot.command(name="resolve_market")
+async def resolve_market(ctx, market_id: int, outcome: str, payout_dollars: float):
+    payout_cents = int(payout_dollars * 100)
+
+    conn = sqlite3.connect("market.db")
+    c = conn.cursor()
+
+    # Check if the market exists and is not already resolved
+    c.execute("SELECT id, resolved_at FROM markets WHERE id = ?", (market_id,))
+    market = c.fetchone()
+
+    if market is None:
+        await ctx.send(f"Market with ID {market_id} does not exist.")
+        return
+
+    if market[1] is not None:
+        await ctx.send(f"Market with ID {market_id} has already been resolved.")
+        return
+
+    # Update the market with the resolution details
+    c.execute(
+        "UPDATE markets SET outcome = ?, payout_cents = ?, resolved_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (outcome, payout_cents, market_id),
+    )
+    conn.commit()
+
+    await ctx.send(
+        f"Market with ID {market_id} has been resolved with outcome '{outcome}' and a payout of ${payout_dollars:.2f}."
+    )
+
+    conn.close()
 
 
 bot.run("YOUR_BOT_TOKEN")

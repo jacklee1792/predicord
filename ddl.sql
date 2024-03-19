@@ -2,7 +2,10 @@ CREATE TABLE IF NOT EXISTS markets (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     creator_id INTEGER NOT NULL,
-    created_at REAL DEFAULT CURRENT_TIMESTAMP
+    created_at REAL DEFAULT CURRENT_TIMESTAMP,
+    outcome TEXT,
+    payout_cents INTEGER,
+    resolved_at REAL
 );
 CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
