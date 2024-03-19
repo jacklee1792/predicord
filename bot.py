@@ -124,49 +124,7 @@ def order():
         )
         order_id = cursor.lastrowid
 
-        # Match the order with existing opposite orders
-        if order_direction == "buy":
-            cursor.execute(
-                """
-                SELECT id,
-                    price_cents,
-                    quantity,
-                    user_id
-                FROM orders
-                WHERE market_id = ?
-                    AND order_direction = 'sell'
-                    AND price_cents >= ?
-                    AND (
-                        expires_at IS NULL
-                        OR expires_at > CURRENT_TIMESTAMP
-                    )
-                ORDER BY price_cents ASC,
-                    created_at ASC
-            """,
-                (market_id, price_cents),
-            )
-        else:
-            cursor.execute(
-                """
-                SELECT id,
-                    price_cents,
-                    quantity,
-                    user_id
-                FROM orders
-                WHERE market_id = ?
-                    AND order_direction = 'buy'
-                    AND price_cents >= ?
-                    AND (
-                        expires_at IS NULL
-                        OR expires_at > CURRENT_TIMESTAMP
-                    )
-                ORDER BY price_cents DESC,
-                    created_at ASC
-            """,
-                (market_id, price_cents),
-            )
-
-        matching_orders = cursor.fetchall()
+        matching_orders = get_matching_orders(cursor, order_direction, price_cents)
 
         for matching_order in matching_orders:
             (
@@ -211,6 +169,52 @@ def order():
         return jsonify({"error": "An error occurred while placing the order."}), 500
     finally:
         conn.close()
+
+
+def get_matching_orders(cursor, order_direction, price_cents):
+    # Match the order with existing opposite orders
+    if order_direction == "buy":
+        cursor.execute(
+            """
+                SELECT id,
+                    price_cents,
+                    quantity,
+                    user_id
+                FROM orders
+                WHERE market_id = ?
+                    AND order_direction = 'sell'
+                    AND price_cents >= ?
+                    AND (
+                        expires_at IS NULL
+                        OR expires_at > CURRENT_TIMESTAMP
+                    )
+                ORDER BY price_cents ASC,
+                    created_at ASC
+            """,
+            (market_id, price_cents),
+        )
+    else:
+        cursor.execute(
+            """
+                SELECT id,
+                    price_cents,
+                    quantity,
+                    user_id
+                FROM orders
+                WHERE market_id = ?
+                    AND order_direction = 'buy'
+                    AND price_cents >= ?
+                    AND (
+                        expires_at IS NULL
+                        OR expires_at > CURRENT_TIMESTAMP
+                    )
+                ORDER BY price_cents DESC,
+                    created_at ASC
+            """,
+            (market_id, price_cents),
+        )
+
+    matching_orders = cursor.fetchall()
 
 
 @app.route("/cancel_order", methods=["POST"])
@@ -400,6 +404,103 @@ def resolve_market():
             "message": f"Market with ID {market_id} has been resolved with outcome '{outcome}' and a payout of ${payout_dollars:.2f}."
         }
     )
+
+
+def get_market_by_id_or_name(market_id=None, market_name=None):
+    conn = sqlite3.connect("market.db")
+    c = conn.cursor()
+
+    if market_id is not None:
+        c.execute("SELECT id, name FROM markets WHERE id = ?", (market_id,))
+    elif market_name is not None:
+        c.execute("SELECT id, name FROM markets WHERE name = ?", (market_name,))
+    else:
+        return None
+
+    market = c.fetchone()
+    conn.close()
+
+    return market
+
+
+def get_clob_data(market_id):
+    conn = sqlite3.connect("market.db")
+    c = conn.cursor()
+
+    # Fetch buy orders for the market
+    c.execute(
+        """
+        SELECT price_cents, SUM(quantity) as total_quantity
+        FROM orders
+        WHERE market_id = ? AND order_direction = 'buy' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+        GROUP BY price_cents
+        ORDER BY price_cents DESC
+        """,
+        (market_id,),
+    )
+    buy_orders = c.fetchall()
+
+    # Fetch sell orders for the market
+    c.execute(
+        """
+        SELECT price_cents, SUM(quantity) as total_quantity
+        FROM orders
+        WHERE market_id = ? AND order_direction = 'sell' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+        GROUP BY price_cents
+        ORDER BY price_cents ASC
+        """,
+        (market_id,),
+    )
+    sell_orders = c.fetchall()
+
+    conn.close()
+
+    return buy_orders, sell_orders
+
+
+@app.route("/clob", methods=["GET"])
+def get_clob():
+    market_id = request.args.get("market_id")
+    market_name = request.args.get("market_name")
+
+    if market_id is not None:
+        try:
+            market_id = int(market_id)
+        except ValueError:
+            return (
+                jsonify(
+                    {"error": "Invalid market ID. Please provide a valid integer."}
+                ),
+                400,
+            )
+    elif market_name is None:
+        return (
+            jsonify({"error": "Please provide either a market ID or market name."}),
+            400,
+        )
+
+    market = get_market_by_id_or_name(market_id, market_name)
+    if market is None:
+        return jsonify({"error": "Market not found."}), 404
+
+    market_id, market_name = market
+    buy_orders, sell_orders = get_clob_data(market_id)
+
+    # Prepare the response data
+    clob_data = {
+        "market_id": market_id,
+        "market_name": market_name,
+        "buy_orders": [
+            {"price_cents": order[0], "total_quantity": order[1]}
+            for order in buy_orders
+        ],
+        "sell_orders": [
+            {"price_cents": order[0], "total_quantity": order[1]}
+            for order in sell_orders
+        ],
+    }
+
+    return jsonify(clob_data)
 
 
 if __name__ == "__main__":
