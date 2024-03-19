@@ -124,49 +124,7 @@ def order():
         )
         order_id = cursor.lastrowid
 
-        # Match the order with existing opposite orders
-        if order_direction == "buy":
-            cursor.execute(
-                """
-                SELECT id,
-                    price_cents,
-                    quantity,
-                    user_id
-                FROM orders
-                WHERE market_id = ?
-                    AND order_direction = 'sell'
-                    AND price_cents >= ?
-                    AND (
-                        expires_at IS NULL
-                        OR expires_at > CURRENT_TIMESTAMP
-                    )
-                ORDER BY price_cents ASC,
-                    created_at ASC
-            """,
-                (market_id, price_cents),
-            )
-        else:
-            cursor.execute(
-                """
-                SELECT id,
-                    price_cents,
-                    quantity,
-                    user_id
-                FROM orders
-                WHERE market_id = ?
-                    AND order_direction = 'buy'
-                    AND price_cents >= ?
-                    AND (
-                        expires_at IS NULL
-                        OR expires_at > CURRENT_TIMESTAMP
-                    )
-                ORDER BY price_cents DESC,
-                    created_at ASC
-            """,
-                (market_id, price_cents),
-            )
-
-        matching_orders = cursor.fetchall()
+        matching_orders = get_matching_orders(cursor, order_direction, price_cents)
 
         for matching_order in matching_orders:
             (
@@ -211,6 +169,52 @@ def order():
         return jsonify({"error": "An error occurred while placing the order."}), 500
     finally:
         conn.close()
+
+
+def get_matching_orders(cursor, order_direction, price_cents):
+    # Match the order with existing opposite orders
+    if order_direction == "buy":
+        cursor.execute(
+            """
+                SELECT id,
+                    price_cents,
+                    quantity,
+                    user_id
+                FROM orders
+                WHERE market_id = ?
+                    AND order_direction = 'sell'
+                    AND price_cents >= ?
+                    AND (
+                        expires_at IS NULL
+                        OR expires_at > CURRENT_TIMESTAMP
+                    )
+                ORDER BY price_cents ASC,
+                    created_at ASC
+            """,
+            (market_id, price_cents),
+        )
+    else:
+        cursor.execute(
+            """
+                SELECT id,
+                    price_cents,
+                    quantity,
+                    user_id
+                FROM orders
+                WHERE market_id = ?
+                    AND order_direction = 'buy'
+                    AND price_cents >= ?
+                    AND (
+                        expires_at IS NULL
+                        OR expires_at > CURRENT_TIMESTAMP
+                    )
+                ORDER BY price_cents DESC,
+                    created_at ASC
+            """,
+            (market_id, price_cents),
+        )
+
+    matching_orders = cursor.fetchall()
 
 
 @app.route("/cancel_order", methods=["POST"])
