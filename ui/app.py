@@ -6,7 +6,6 @@ from flask import Flask
 import requests
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"  # Change this to a secure random key
 app.config["SESSION_TYPE"] = "filesystem"
 
 CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
