@@ -5,7 +5,8 @@ import flask
 from flask import Flask
 import requests
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
+app.secret_key = "todo: change this"
 app.config["SESSION_TYPE"] = "filesystem"
 
 CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
@@ -17,7 +18,7 @@ REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
 @app.route("/")
 def index():
     if "discord_user" in flask.session:
-        return flask.redirect(flask.url_for("profile"))
+        return flask.redirect(flask.url_for("home"))
     else:
         return '<a href="/login">Login with Discord</a>'
 
@@ -70,16 +71,17 @@ def callback():
         return "Failed to get user info."
     res = res.json()
     flask.session["discord_user"] = res
-    return flask.redirect(flask.url_for("profile"))
+    return flask.redirect(flask.url_for("home"))
 
 
-@app.route("/profile")
-def profile():
+@app.route("/home")
+def home():
     user = flask.session.get("discord_user")
     if user:
         user = user["user"]
         name = user.get("global_name")
-        return f"Logged in as {name}. <a href='/logout'>Logout</a>"
+        objects = ["a", "bb", "ccc"]
+        return flask.render_template("home.html", name=name, objects=objects)
     else:
         return flask.redirect(flask.url_for("login"))
 

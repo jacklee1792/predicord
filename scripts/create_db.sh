@@ -1,7 +1,9 @@
 #!/bin/bash
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 DB_NAME="prediction_markets.db"
-DDL_FILE="ddl.sql"
+DDL_FILE="$SCRIPT_DIR/../db/ddl.sql"
 
 # Check if the DDL file exists
 if [ ! -f "$DDL_FILE" ]; then
