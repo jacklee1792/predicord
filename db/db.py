@@ -1,17 +1,17 @@
 import logging
 import sqlite3
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from .objects import Market, Order, Trade
 
 
 class Database:
-    def __init__(self, db: str):
-        self.db = db
-        self.conn, self.cursor = None, None
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+        self.conn.execute("PRAGMA foreign_keys = ON")
+        self.cursor: Optional[sqlite3.Cursor] = None
 
     def __enter__(self):
-        self.conn = sqlite3.connect(self.db)
         self.cursor = self.conn.cursor()
         return self
 
@@ -23,10 +23,13 @@ class Database:
         else:
             self.conn.commit()
 
-        # Deliberately remove the connection, so it can't be reused without the
-        # context manager
-        self.conn.close()
-        self.conn, self.cursor = None, None
+        # Deliberately remove the cursor, so it can't be reused without the context
+        # manager
+        self.cursor.close()
+        self.cursor = None, None
+
+    def commit(self):
+        self.conn.commit()
 
     def create_market(self, name: str, creator_id: int, criteria: str) -> int:
         sql = "INSERT INTO markets (name, creator_id, criteria) VALUES (?, ?, ?)"
