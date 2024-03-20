@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS markets (
     payout_cents INTEGER,
     resolved_at REAL
 );
+
 CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     market_id INTEGER NOT NULL,
@@ -17,8 +18,9 @@ CREATE TABLE IF NOT EXISTS orders (
     quantity INTEGER NOT NULL,
     created_at REAL DEFAULT CURRENT_TIMESTAMP,
     expires_at REAL,
-    FOREIGN KEY (market_id) REFERENCES markets (id)
+    FOREIGN KEY (market_id) REFERENCES markets (id) ON DELETE CASCADE
 );
+
 CREATE TABLE IF NOT EXISTS trades (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     market_id INTEGER NOT NULL,
@@ -27,12 +29,27 @@ CREATE TABLE IF NOT EXISTS trades (
     price_cents INTEGER NOT NULL,
     quantity INTEGER NOT NULL,
     timestamp REAL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (market_id) REFERENCES markets (id)
+    FOREIGN KEY (market_id) REFERENCES markets (id) ON DELETE CASCADE
 );
+
 CREATE TRIGGER delete_orders_with_zero_quantity
 AFTER
 UPDATE OF quantity ON orders BEGIN
 DELETE FROM orders
 WHERE id = OLD.id
     AND quantity = 0;
+END;
+
+CREATE TRIGGER ensure_valid_market_id_orders
+BEFORE INSERT ON orders
+BEGIN
+    SELECT RAISE(ABORT, 'Invalid market_id')
+    WHERE NEW.market_id NOT IN (SELECT id FROM markets);
+END;
+
+CREATE TRIGGER ensure_valid_market_id_trades
+BEFORE INSERT ON trades
+BEGIN
+    SELECT RAISE(ABORT, 'Invalid market_id')
+    WHERE NEW.market_id NOT IN (SELECT id FROM markets);
 END;
