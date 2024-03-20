@@ -106,7 +106,6 @@ def market(market_id):
     return flask.render_template("market.html", market=m)
 
 
-
 @app.route("/logout")
 def logout():
     flask.session.pop("discord_user", None)
