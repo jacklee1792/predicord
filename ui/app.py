@@ -1,9 +1,14 @@
 import os
+import sqlite3
 import urllib.parse
+from typing import List, Optional
 
 import flask
 from flask import Flask
 import requests
+
+from db import Database
+from db.objects import Market
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = "todo: change this"
@@ -14,11 +19,19 @@ CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
 
 
+@app.before_request
+def before_request():
+    conn = sqlite3.connect("prediction_markets.db")
+    flask.g.db = Database(conn)
+    with flask.g.db as db:
+        flask.g.markets = db.get_markets()
+
+
 # Routes
 @app.route("/")
 def index():
     if "discord_user" in flask.session:
-        return flask.redirect(flask.url_for("home"))
+        return flask.redirect("/home")
     else:
         return '<a href="/login">Login with Discord</a>'
 
@@ -70,26 +83,48 @@ def callback():
     if res.status_code != 200:
         return "Failed to get user info."
     res = res.json()
-    flask.session["discord_user"] = res
-    return flask.redirect(flask.url_for("home"))
+    flask.session["discord_user"] = res["user"]
+    return flask.redirect("/home")
 
 
 @app.route("/home")
 def home():
     user = flask.session.get("discord_user")
-    if user:
-        user = user["user"]
-        name = user.get("global_name")
-        objects = ["a", "bb", "ccc"]
-        return flask.render_template("home.html", name=name, objects=objects)
-    else:
-        return flask.redirect(flask.url_for("login"))
+    if not user:
+        return flask.redirect("/login")
+    return flask.render_template("home.html", markets=flask.g.markets, user=user)
+
+
+@app.route("/market/<int:market_id>")
+def market(market_id):
+    with flask.g.db as db:
+        db: Database
+        m: Optional[Market] = db.get_market_by_id(market_id)
+        if not m:
+            return "Market not found"
+
+    return flask.render_template("market.html", market=m)
+
 
 
 @app.route("/logout")
 def logout():
     flask.session.pop("discord_user", None)
-    return flask.redirect(flask.url_for("index"))
+    return flask.redirect("/home")
+
+
+@app.route("/submit/create_market", methods=["POST"])
+def submit_create_market():
+    name = flask.request.form.get("name")
+    criteria = flask.request.form.get("criteria")
+    user_id = flask.session["discord_user"].get("id")
+    if not name or not criteria or not user_id:
+        return "Failed to create new market"
+
+    with flask.g.db as db:
+        db: Database
+        db.create_market(name=name, creator_id=user_id, criteria=criteria)
+    return flask.redirect("/home")
 
 
 if __name__ == "__main__":

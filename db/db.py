@@ -36,6 +36,12 @@ class Database:
         self.cursor.execute(sql, (name, creator_id, criteria))
         return self.cursor.lastrowid
 
+    def get_market_by_id(self, market_id: int) -> Optional[Market]:
+        sql = "SELECT * FROM markets WHERE id = ?"
+        self.cursor.execute(sql, (market_id,))
+        res = self.cursor.fetchone()
+        return Market(*res) if res else None
+
     def get_markets(self) -> List[Market]:
         sql = "SELECT * FROM markets"
         self.cursor.execute(sql)
