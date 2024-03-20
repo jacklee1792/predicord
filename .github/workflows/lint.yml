@@ -22,4 +22,4 @@ jobs:
         pip install -r requirements-dev.txt
 
     - name: Lint with Black
-      run: black . --check
+      run: python -m black . --check
