@@ -9,36 +9,6 @@ app = Flask(__name__)
 app.secret_key = "YOUR_SECRET_KEY"
 
 
-def get_db():
-    conn = sqlite3.connect("prediction_markets.db")
-    return con
-
-
-@app.route("/create_market", methods=["POST"])
-def create_market():
-    data = request.get_json()
-    name = data["name"]
-    user_id = session["user_id"]
-
-    # Function logic goes here
-    try:
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO markets (name, creator_id) VALUES (?, ?)",
-            (name, user_id),
-        )
-        market_id = cursor.lastrowid
-        conn.commit()
-        return jsonify({"message": f"Market created with ID: {market_id}"})
-    except Exception as e:
-        logging.error(f"Error creating market: {str(e)}")
-        conn.rollback()
-        return jsonify({"error": "An error occurred while creating the market."}), 500
-    finally:
-        conn.close()
-
-
 @app.route("/order", methods=["POST"])
 def order():
     data = request.get_json()
