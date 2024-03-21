@@ -1,0 +1,89 @@
+h1, h2, h3, h4, h5, h6 {
+    font-family: sans-serif;
+    color: #424549;
+    margin: 1rem 0;
+}
+
+nav {
+    background: #7289da;
+    display: flex;
+    align-items: center;
+    border-radius: 1rem;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+
+    h1 {
+        font-size: 1.5em;
+        margin: 0;
+    }
+}
+
+
+nav h1 a {
+    text-decoration: none;
+    color: white;
+}
+
+nav ul {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    a {
+        text-decoration: none;
+        color: white;
+        font-weight: bold;
+        font-size: 0.8em;
+        text-transform: uppercase;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+}
+
+.content {
+    padding: 0 1rem;
+}
+
+h1 {
+    margin-bottom: 2rem;
+    font-size: 2em;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    margin: 1rem 0;
+
+    label {
+        text-transform: uppercase;
+        font-weight: bold;
+        color: #99aab5;
+        letter-spacing: -0.05em;
+        font-size: 0.75em;
+        margin-bottom: 0.5rem;
+    }
+
+    input {
+        padding: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #d3d3d3;
+        border-radius: 0.25rem;
+    }
+
+    button, input[type="submit"] {
+        padding: 0.75rem;
+        border-radius: 0.25rem;
+        background: #99aab5;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    input[type="submit"].danger {
+        background: #ed5555;
+        margin-top: -1rem;
+    }
+}

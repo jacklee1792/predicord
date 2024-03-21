@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block header %}
+  <h1>
+    {% block title %}{{ market.name }}{% endblock %}
+  </h1>
+{% endblock %}
+{% block content %}
+  <a href="{{ url_for('market.update', market_id=market.id) }}">Edit</a>
+  <br>
+  {{ market }}
+{% endblock %}
