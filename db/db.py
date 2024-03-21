@@ -36,6 +36,10 @@ class Database:
         self.cursor.execute(sql, (name, creator_id, criteria))
         return self.cursor.lastrowid
 
+    def update_market(self, market_id: int, name: str, criteria: str) -> None:
+        sql = "UPDATE markets SET name = ?, criteria = ? WHERE id = ?"
+        self.cursor.execute(sql, (name, criteria, market_id))
+
     def get_market_by_id(self, market_id: int) -> Optional[Market]:
         sql = "SELECT * FROM markets WHERE id = ?"
         self.cursor.execute(sql, (market_id,))
@@ -53,14 +57,14 @@ class Database:
         self.cursor.execute(sql, (market_id,))
 
     def create_order(
-        self,
-        market_id: int,
-        creator_id: int,
-        order_type: Literal["market", "limit"],
-        order_direction: Literal["buy", "sell"],
-        price_cents: int,
-        quantity: int,
-        expires_at: float,
+            self,
+            market_id: int,
+            creator_id: int,
+            order_type: Literal["market", "limit"],
+            order_direction: Literal["buy", "sell"],
+            price_cents: int,
+            quantity: int,
+            expires_at: float,
     ) -> int:
         sql = (
             "INSERT INTO orders (market_id, creator_id, order_type, order_direction, "
@@ -91,12 +95,12 @@ class Database:
         self.cursor.execute(sql, (order_id,))
 
     def create_trade(
-        self,
-        market_id: int,
-        buyer_id: int,
-        seller_id: int,
-        price_cents: int,
-        quantity: int,
+            self,
+            market_id: int,
+            buyer_id: int,
+            seller_id: int,
+            price_cents: int,
+            quantity: int,
     ) -> int:
         sql = (
             "INSERT INTO trades (market_id, buyer_id, seller_id, price_cents, "

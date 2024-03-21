@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    {% if session["user_id"] %}
+        <h1>{% block title %}Home{% endblock %}</h1>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% if session["user_id"] %}
+        <a href="{{ url_for('market.create') }}">Create a market</a>
+        <h3>Markets</h3>
+        <table>
+        {% for market in g.markets %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('market.index', market_id=market.id) }}">{{ market.name }}</a>
+                </td>
+                <td>
+                    <p>{{ market.outcome }}</p>
+                </td>
+            </tr>
+        {% endfor %}
+        <table>
+    {% endif %}
+{% endblock %}
