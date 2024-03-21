@@ -1,16 +1,23 @@
 {% extends 'base.html' %}
-
-{% block header %}
-    <h1>Create a market</h1>
-{% endblock %}
-
+{% block header %}<h1>Update market</h1>{% endblock %}
 {% block content %}
-    <form method="post">
-        <label for="name">Name</label>
-        <input type="text" name="name" id="name" value="{{ market.name }}" required>
-        <label for="criteria">Criteria</label>
-        <input type="text" name="criteria" id="criteria" value="{{ market.outcome }}"
-               required>
-        <input type="submit" value="Update">
-    </form>
+  <form method="post">
+    <label for="name">Name</label>
+    <input type="text" name="name" id="name" value="{{ market.name }}" required>
+    <label for="criteria">Criteria</label>
+    <input type="text"
+           name="criteria"
+           id="criteria"
+           value="{{ market.outcome }}"
+           required>
+    <input type="submit" value="Update">
+  </form>
+  <form action="{{ url_for('market.delete', market_id=market.id) }}"
+        method="post">
+    {% set msg = "Are you sure? All associated orders/trades will be deleted permanently." %}
+    <input type="submit"
+           class="danger"
+           value="Delete"
+           onclick="return confirm('{{ msg }}');">
+  </form>
 {% endblock %}

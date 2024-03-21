@@ -83,8 +83,9 @@ def oauth_callback():
         "scope": "identify",
     }
     url = f"https://discord.com/api/oauth2/token"
-    res = requests.post(url, data=token_data,
-                        auth=(oauth.client_id, oauth.client_secret))
+    res = requests.post(
+        url, data=token_data, auth=(oauth.client_id, oauth.client_secret)
+    )
     if res.status_code != 200:
         return "Failed to get access token."
 
@@ -92,7 +93,7 @@ def oauth_callback():
     # the user session
     access_token = res.json()["access_token"]
     url = "https://discord.com/api/oauth2/@me"
-    headers = {"Authorization": f'Bearer {access_token}'}
+    headers = {"Authorization": f"Bearer {access_token}"}
     res = requests.get(url, headers=headers)
     if res.status_code != 200:
         return "Failed to get user info."

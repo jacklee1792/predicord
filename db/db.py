@@ -57,14 +57,14 @@ class Database:
         self.cursor.execute(sql, (market_id,))
 
     def create_order(
-            self,
-            market_id: int,
-            creator_id: int,
-            order_type: Literal["market", "limit"],
-            order_direction: Literal["buy", "sell"],
-            price_cents: int,
-            quantity: int,
-            expires_at: float,
+        self,
+        market_id: int,
+        creator_id: int,
+        order_type: Literal["market", "limit"],
+        order_direction: Literal["buy", "sell"],
+        price_cents: int,
+        quantity: int,
+        expires_at: float,
     ) -> int:
         sql = (
             "INSERT INTO orders (market_id, creator_id, order_type, order_direction, "
@@ -95,12 +95,12 @@ class Database:
         self.cursor.execute(sql, (order_id,))
 
     def create_trade(
-            self,
-            market_id: int,
-            buyer_id: int,
-            seller_id: int,
-            price_cents: int,
-            quantity: int,
+        self,
+        market_id: int,
+        buyer_id: int,
+        seller_id: int,
+        price_cents: int,
+        quantity: int,
     ) -> int:
         sql = (
             "INSERT INTO trades (market_id, buyer_id, seller_id, price_cents, "
