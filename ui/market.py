@@ -18,8 +18,9 @@ def index(market_id):
         m: Optional[Market] = db.get_market_by_id(market_id)
         if not m:
             return "Market not found"
+        o = db.get_orders_by_market_id(market_id)
 
-    return flask.render_template("market/index.html", market=m)
+    return flask.render_template("market/index.html", market=m, orders=o)
 
 
 @bp.route("/create", methods=["GET", "POST"])

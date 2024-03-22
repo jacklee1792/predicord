@@ -13,12 +13,12 @@ def create_app(test_config=None):
     app.config["SESSION_TYPE"] = "filesystem"
 
     from . import auth
+    from . import market
+    from . import order
 
     app.register_blueprint(auth.bp)
-
-    from . import market
-
     app.register_blueprint(market.bp)
+    app.register_blueprint(order.bp)
 
     @app.before_request
     def before_request():

@@ -57,14 +57,14 @@ class Database:
         self.cursor.execute(sql, (market_id,))
 
     def create_order(
-        self,
-        market_id: int,
-        creator_id: int,
-        order_type: Literal["market", "limit"],
-        order_direction: Literal["buy", "sell"],
-        price_cents: int,
-        quantity: int,
-        expires_at: float,
+            self,
+            market_id: int,
+            creator_id: int,
+            order_type: Literal["market", "limit"],
+            order_direction: Literal["buy", "sell"],
+            price_cents: int,
+            quantity: int,
+            expires_at: float,
     ) -> int:
         sql = (
             "INSERT INTO orders (market_id, creator_id, order_type, order_direction, "
@@ -90,17 +90,23 @@ class Database:
         orders = [Order(*o) for o in self.cursor.fetchall()]
         return orders
 
+    def get_orders_by_market_id(self, market_id: int) -> List[Order]:
+        sql = "SELECT * FROM orders WHERE market_id = ?"
+        self.cursor.execute(sql, (market_id,))
+        orders = [Order(*o) for o in self.cursor.fetchall()]
+        return orders
+
     def delete_order(self, order_id: int) -> None:
         sql = "DELETE FROM orders where id = ?"
         self.cursor.execute(sql, (order_id,))
 
     def create_trade(
-        self,
-        market_id: int,
-        buyer_id: int,
-        seller_id: int,
-        price_cents: int,
-        quantity: int,
+            self,
+            market_id: int,
+            buyer_id: int,
+            seller_id: int,
+            price_cents: int,
+            quantity: int,
     ) -> int:
         sql = (
             "INSERT INTO trades (market_id, buyer_id, seller_id, price_cents, "

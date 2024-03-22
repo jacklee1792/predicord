@@ -8,4 +8,101 @@
   <a href="{{ url_for('market.update', market_id=market.id) }}">Edit</a>
   <br>
   {{ market }}
+
+  <form id="order_create" action="{{ url_for('order.create') }}" method="post">
+    {# Default configuration: buy / market #}
+    <input type="hidden" name="market_id" value="{{ market.id }}">
+    <input type="hidden" name="expires_at">
+    <div class="form-row">
+      <label for="buy">
+        Buy
+        <input type="radio" name="order_direction" id="buy" value="buy"
+               onclick="onDirectionUpdate()" checked>
+      </label>
+      <label for="sell">
+        Sell
+        <input type="radio" name="order_direction" id="sell" value="sell"
+               onclick="onDirectionUpdate()">
+      </label>
+    </div>
+    <div class="form-row">
+      <label for="order_type">
+        Type
+        <select id="order_type" name="order_type" onchange="onTypeUpdate()"
+                required>
+          <option id="market" value="market">Market buy</option>
+          <option id="limit" value="limit">Limit buy</option>
+        </select>
+      </label>
+      <label for="quantity">
+        Quantity
+        <input type="number" id="quantity" name="quantity" min="1" required>
+      </label>
+      <label hidden for="price_cents">
+        Price (cents)
+        <input hidden type="number" id="price_cents" name="price_cents" min="1"
+               max="99">
+      </label>
+      <label hidden for="expiry_picker">
+        Expiry
+        <input hidden type="datetime-local" id="expiry_picker" name="expiry_picker"
+               value="2024-01-01T00:00"
+               onfocus="onExpiryFocus()" onchange="onExpiryUpdate()">
+      </label>
+      <input type="submit" value="Create Order">
+    </div>
+  </form>
+
+  <h2>Orders</h2>
+  <ul>
+    {% for order in orders %}
+      <li>{{ order }}</li>
+    {% endfor %}
+  </ul>
+
+  <script>
+      function onTypeUpdate() {
+          // Price input / expiry should only be shown and be required for limit orders
+          const hidden = document.getElementById("order_type").value === "market";
+
+          const priceInput = document.getElementById("price_cents");
+          const priceLabel = priceInput.labels[0];
+          const expiryInput = document.getElementById("expiry_picker");
+          const expiryLabel = expiryInput.labels[0];
+          for (const e of [priceInput, priceLabel, expiryInput, expiryLabel]) {
+              e.hidden = hidden;
+              e.required = !hidden;
+          }
+
+          // Set a min time constraint or remove it
+          if (hidden)
+              expiryInput.min = "";
+          else
+              onExpiryFocus();
+      }
+
+      function onDirectionUpdate() {
+          // The order type options should have "buy" or "sell" appended to them
+          const direction = document.querySelector('input[name="order_direction"]:checked').value;
+          document.getElementById("market").innerText = "Market " + direction;
+          document.getElementById("limit").innerText = "Limit " + direction;
+      }
+
+      function onExpiryFocus() {
+          // Only future dates are allowed
+          const now = new Date();
+          // Shift by locale, then raise to next multiple of 60000 (1 minute)
+          let shifted = now.getTime() - (now.getTimezoneOffset() * 60000);
+          shifted += 60000 - (shifted % 60000);
+          const min = (new Date(shifted)).toISOString().split(".")[0];
+          const expiry = document.getElementById("expiry_picker");
+          expiry.min = min;
+      }
+
+      function onExpiryUpdate() {
+          // Store the expiry in the hidden input
+          const value = document.getElementById("expiry_picker").value;
+          document.getElementsByName("expires_at")[0].value = (new Date(value)).getTime();
+      }
+  </script>
 {% endblock %}
