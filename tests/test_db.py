@@ -1,6 +1,7 @@
 import sqlite3
 
 from db import Database
+from db.objects import User
 
 
 def memory_conn() -> sqlite3.Connection:
@@ -15,6 +16,7 @@ def memory_conn() -> sqlite3.Connection:
 
 def test_cascade():
     with Database(memory_conn()) as d:
+        d.upsert_user(discord_id=1, display_name="A", avatar_hash="1")
         d.create_market(name="A", creator_id=1, criteria="")
         d.create_market(name="B", creator_id=1, criteria="cond")
         d.create_order(
@@ -45,6 +47,7 @@ def test_rollback():
 
     try:
         with Database(conn) as d:
+            d.upsert_user(discord_id=1, display_name="A", avatar_hash="1")
             d.create_market(name="A", creator_id=1, criteria="")
             d.commit()
             d.create_market(name="A", creator_id=1, criteria="")
@@ -54,3 +57,12 @@ def test_rollback():
 
     with Database(conn) as d:
         assert len(d.get_markets()) == 1
+
+
+def test_user_upsert():
+    with Database(memory_conn()) as d:
+        d.upsert_user(discord_id=1, display_name="A", avatar_hash="1")
+        d.upsert_user(discord_id=1, display_name="B", avatar_hash="2")
+        users = d.get_users()
+        assert len(users) == 1
+        assert users[0] == User(id=1, display_name="B", avatar_hash="2")

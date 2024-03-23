@@ -1,7 +1,9 @@
 {% extends 'base.html' %}
-{% block header %}<h1>Update market</h1>{% endblock %}
+{% block title %}Update Market{% endblock %}
 {% block content %}
+  <div class="narrow-container">
   <form method="post">
+    <h1>Update Market</h1>
     <label for="name">Name</label>
     <input type="text" name="name" id="name" value="{{ market.name }}" required>
     <label for="criteria">Criteria</label>
@@ -12,7 +14,7 @@
            required>
     <input type="submit" value="Update">
   </form>
-  <form action="{{ url_for('market.delete', market_id=market.id) }}"
+  <form class="narrow" action="{{ url_for('market.delete', market_id=market.id) }}"
         method="post">
     {% set msg = "Are you sure? All associated orders/trades will be deleted permanently." %}
     <input type="submit"
@@ -20,4 +22,5 @@
            value="Delete"
            onclick="return confirm('{{ msg }}');">
   </form>
+  <div>
 {% endblock %}

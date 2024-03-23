@@ -35,3 +35,10 @@ class Trade:
     price_cents: int
     quantity: int
     timestamp: int
+
+
+@dataclass
+class User:
+    id: int
+    display_name: str
+    avatar_hash: str

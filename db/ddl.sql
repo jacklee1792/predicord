@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS markets
     created_at   INTEGER DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000),
     criteria     TEXT    NOT NULL,
     payout_cents INTEGER,
-    resolved_at  INTEGER
+    resolved_at  INTEGER,
+    FOREIGN KEY (creator_id) REFERENCES users (id)
 );
 
 CREATE TABLE IF NOT EXISTS orders
@@ -20,7 +21,8 @@ CREATE TABLE IF NOT EXISTS orders
     quantity        INTEGER NOT NULL,
     created_at      INTEGER DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000),
     expires_at      INTEGER,
-    FOREIGN KEY (market_id) REFERENCES markets (id) ON DELETE CASCADE
+    FOREIGN KEY (market_id) REFERENCES markets (id) ON DELETE CASCADE,
+    FOREIGN KEY (creator_id) REFERENCES users (id)
 );
 
 CREATE TABLE IF NOT EXISTS trades
@@ -32,7 +34,16 @@ CREATE TABLE IF NOT EXISTS trades
     price_cents INTEGER NOT NULL,
     quantity    INTEGER NOT NULL,
     timestamp   INTEGER DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000),
-    FOREIGN KEY (market_id) REFERENCES markets (id) ON DELETE CASCADE
+    FOREIGN KEY (market_id) REFERENCES markets (id) ON DELETE CASCADE,
+    FOREIGN KEY (buyer_id) REFERENCES users (id),
+    FOREIGN KEY (seller_id) REFERENCES users (id)
+);
+
+CREATE TABLE IF NOT EXISTS users
+(
+    id           INTEGER PRIMARY KEY,
+    display_name TEXT,
+    avatar_hash  TEXT
 );
 
 CREATE TRIGGER delete_orders_with_zero_quantity

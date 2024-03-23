@@ -20,9 +20,10 @@ def create():
         return "Invalid order direction"
 
     # Limit orders additionally require price/expiry
+    # TODO change the name of this field "price_cents"
     if order_type == "limit":
-        price_cents = int(flask.request.form["price_cents"])
-        if not 0 < price_cents < 100:
+        price_cents = round(float(flask.request.form["price_cents"]) * 1000)
+        if not 0 < price_cents < 1000:
             return "Invalid price"
         expires_at = int(flask.request.form["expires_at"])
         if expires_at < time.time() * 1000:
@@ -39,7 +40,7 @@ def create():
     with flask.g.db as db:
         db.create_order(
             market_id=int(flask.request.form["market_id"]),
-            creator_id=flask.session["user_id"],
+            creator_id=flask.session["user"]["id"],
             order_type=order_type,
             order_direction=order_direction,
             price_cents=price_cents,

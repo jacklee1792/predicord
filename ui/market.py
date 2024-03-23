@@ -1,10 +1,11 @@
-from typing import Optional
+from dataclasses import dataclass
+from typing import List, Optional
 
 import flask
 from flask import Blueprint
 
 from db import Database
-from db.objects import Market
+from db.objects import Market, Order, User
 from ui import require_login
 
 bp = Blueprint("market", __name__, url_prefix="/market")
@@ -18,9 +19,12 @@ def index(market_id):
         m: Optional[Market] = db.get_market_by_id(market_id)
         if not m:
             return "Market not found"
-        o = db.get_orders_by_market_id(market_id)
+        u: Optional[User] = db.get_user_by_id(m.creator_id)
+        if not u:
+            return "Creator not found"
+        o: List[Order] = db.get_orders_by_market_id(market_id)
 
-    return flask.render_template("market/index.html", market=m, orders=o)
+    return flask.render_template("market/index.html", market=m, creator=u, orders=o)
 
 
 @bp.route("/create", methods=["GET", "POST"])
@@ -32,7 +36,7 @@ def create():
     # POST; create new market
     name = flask.request.form.get("name")
     criteria = flask.request.form.get("criteria")
-    user_id = flask.session.get("user_id")
+    user_id = flask.session["user"]["id"]
     if not name or not criteria or not user_id:
         return "Failed to create new market"
 

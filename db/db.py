@@ -2,7 +2,7 @@ import logging
 import sqlite3
 from typing import List, Literal, Optional
 
-from .objects import Market, Order, Trade
+from .objects import Market, Order, Trade, User
 
 
 class Database:
@@ -57,14 +57,14 @@ class Database:
         self.cursor.execute(sql, (market_id,))
 
     def create_order(
-        self,
-        market_id: int,
-        creator_id: int,
-        order_type: Literal["market", "limit"],
-        order_direction: Literal["buy", "sell"],
-        price_cents: int,
-        quantity: int,
-        expires_at: float,
+            self,
+            market_id: int,
+            creator_id: int,
+            order_type: Literal["market", "limit"],
+            order_direction: Literal["buy", "sell"],
+            price_cents: int,
+            quantity: int,
+            expires_at: float,
     ) -> int:
         sql = (
             "INSERT INTO orders (market_id, creator_id, order_type, order_direction, "
@@ -101,12 +101,12 @@ class Database:
         self.cursor.execute(sql, (order_id,))
 
     def create_trade(
-        self,
-        market_id: int,
-        buyer_id: int,
-        seller_id: int,
-        price_cents: int,
-        quantity: int,
+            self,
+            market_id: int,
+            buyer_id: int,
+            seller_id: int,
+            price_cents: int,
+            quantity: int,
     ) -> int:
         sql = (
             "INSERT INTO trades (market_id, buyer_id, seller_id, price_cents, "
@@ -126,3 +126,23 @@ class Database:
     def delete_trade(self, trade_id: int) -> None:
         sql = "DELETE FROM trades where id = ?"
         self.cursor.execute(sql, (trade_id,))
+
+    def upsert_user(self, discord_id: int, display_name: str, avatar_hash: str) -> int:
+        sql = (
+            "INSERT OR REPLACE INTO users (id, display_name, avatar_hash) VALUES ("
+            "?, ?, ?)"
+        )
+        self.cursor.execute(sql, (discord_id, display_name, avatar_hash))
+        return self.cursor.lastrowid
+
+    def get_users(self) -> List[User]:
+        sql = "SELECT * FROM users"
+        self.cursor.execute(sql)
+        users = [User(*u) for u in self.cursor.fetchall()]
+        return users
+
+    def get_user_by_id(self, user_id: int) -> Optional[User]:
+        sql = "SELECT * FROM users WHERE id = ?"
+        self.cursor.execute(sql, (user_id,))
+        res = self.cursor.fetchone()
+        return User(*res) if res else None

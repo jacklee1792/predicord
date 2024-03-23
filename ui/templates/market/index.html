@@ -2,13 +2,19 @@
 {% block header %}
   <h1>
     {% block title %}{{ market.name }}{% endblock %}
+    <a class="footnote" href="{{ url_for('market.update', market_id=market.id) }}">(edit)</a>
   </h1>
+  <div id="market-creator-description">
+    <p>Created {{ timedelta_from(market.created_at) }} by {{ creator.display_name }}</p>
+    <img class="avatar-mini"
+         src="{{ discord_avatar_url(creator.id, creator.avatar_hash) }}"
+         alt="Avatar for {{ user.display_name }}"/>
+  </div>
 {% endblock %}
 {% block content %}
-  <a href="{{ url_for('market.update', market_id=market.id) }}">Edit</a>
-  <br>
-  {{ market }}
+  <h2 id="market-criteria">{{ market.outcome }}</h2>
 
+  <hr>
   <form id="order_create" action="{{ url_for('order.create') }}" method="post">
     {# Default configuration: buy / market #}
     <input type="hidden" name="market_id" value="{{ market.id }}">
@@ -40,8 +46,8 @@
       </label>
       <label hidden for="price_cents">
         Price (cents)
-        <input hidden type="number" id="price_cents" name="price_cents" min="1"
-               max="99">
+        <input hidden type="number" id="price_cents" name="price_cents" min="0.001"
+               max="0.999" value="0.500" step="0.001">
       </label>
       <label hidden for="expiry_picker">
         Expiry

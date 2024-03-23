@@ -1,15 +1,13 @@
 {% extends 'base.html' %}
 {% block header %}
-  {% if session["user_id"] %}
+  {% if session["user"] %}
     <h1>
-      {% block title %}Home{% endblock %}
+      {% block title %}Markets{% endblock %}
     </h1>
   {% endif %}
 {% endblock %}
 {% block content %}
-  {% if session["user_id"] %}
-    <a href="{{ url_for("market.create") }}">Create a market</a>
-    <h3>Markets</h3>
+  {% if session["user"] %}
     <table>
       {% for market in g.markets %}
         <tr>
