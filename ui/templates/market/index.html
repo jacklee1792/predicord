@@ -79,8 +79,8 @@
           <p class="order-expiry">
             Expires {{ timedelta_from(order.expires_at) }}
           </p>
-          <img src="{{ discord_avatar_url(user.id, user.avatar_hash) }}"
-               alt="Avatar for {{ user.display_name }}"/>
+          <img src="{{ discord_avatar_url(creator.id, creator.avatar_hash) }}"
+               alt="Avatar for {{ creator.display_name }}"/>
         </li>
       {% endfor %}
     </div>
@@ -103,8 +103,8 @@
           <p class="order-expiry">
             Expires {{ timedelta_from(order.expires_at) }}
           </p>
-          <img src="{{ discord_avatar_url(user.id, user.avatar_hash) }}"
-               alt="Avatar for {{ user.display_name }}"/>
+          <img src="{{ discord_avatar_url(creator.id, creator.avatar_hash) }}"
+               alt="Avatar for {{ creator.display_name }}"/>
         </li>
       {% endfor %}
     </div>
