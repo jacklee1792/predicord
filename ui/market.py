@@ -5,7 +5,7 @@ import flask
 from flask import Blueprint
 
 from db import Database
-from db.objects import Market, Order, User
+from db.objects import ExpandedOrder, Market, Order, User
 from ui import require_login
 
 bp = Blueprint("market", __name__, url_prefix="/market")
@@ -22,7 +22,7 @@ def index(market_id):
         u: Optional[User] = db.get_user_by_id(m.creator_id)
         if not u:
             return "Creator not found"
-        o: List[Order] = db.get_orders_by_market_id(market_id)
+        o: List[ExpandedOrder] = db.get_expanded_orders_by_market_id(market_id)
 
     return flask.render_template("market/index.html", market=m, creator=u, orders=o)
 

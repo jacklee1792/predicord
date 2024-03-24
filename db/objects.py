@@ -42,3 +42,9 @@ class User:
     id: int
     display_name: str
     avatar_hash: str
+
+
+@dataclass
+class ExpandedOrder:
+    order: Order
+    creator: User

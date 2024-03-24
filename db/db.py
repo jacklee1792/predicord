@@ -1,8 +1,8 @@
 import logging
 import sqlite3
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Tuple
 
-from .objects import Market, Order, Trade, User
+from .objects import ExpandedOrder, Market, Order, Trade, User
 
 
 class Database:
@@ -57,14 +57,14 @@ class Database:
         self.cursor.execute(sql, (market_id,))
 
     def create_order(
-            self,
-            market_id: int,
-            creator_id: int,
-            order_type: Literal["market", "limit"],
-            order_direction: Literal["buy", "sell"],
-            price_cents: int,
-            quantity: int,
-            expires_at: float,
+        self,
+        market_id: int,
+        creator_id: int,
+        order_type: Literal["market", "limit"],
+        order_direction: Literal["buy", "sell"],
+        price_cents: int,
+        quantity: int,
+        expires_at: float,
     ) -> int:
         sql = (
             "INSERT INTO orders (market_id, creator_id, order_type, order_direction, "
@@ -90,6 +90,19 @@ class Database:
         orders = [Order(*o) for o in self.cursor.fetchall()]
         return orders
 
+    def get_expanded_orders_by_market_id(self, market_id: int) -> List[ExpandedOrder]:
+        sql = """
+            SELECT orders.*, users.*
+            FROM orders
+            JOIN users ON orders.creator_id = users.id
+            WHERE market_id = ?
+        """
+        self.cursor.execute(sql, (market_id,))
+        orders = [
+            ExpandedOrder(Order(*x[:-3]), User(*x[-3:])) for x in self.cursor.fetchall()
+        ]
+        return orders
+
     def get_orders_by_market_id(self, market_id: int) -> List[Order]:
         sql = "SELECT * FROM orders WHERE market_id = ?"
         self.cursor.execute(sql, (market_id,))
@@ -101,12 +114,12 @@ class Database:
         self.cursor.execute(sql, (order_id,))
 
     def create_trade(
-            self,
-            market_id: int,
-            buyer_id: int,
-            seller_id: int,
-            price_cents: int,
-            quantity: int,
+        self,
+        market_id: int,
+        buyer_id: int,
+        seller_id: int,
+        price_cents: int,
+        quantity: int,
     ) -> int:
         sql = (
             "INSERT INTO trades (market_id, buyer_id, seller_id, price_cents, "

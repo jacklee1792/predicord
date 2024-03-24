@@ -14,7 +14,6 @@
 {% block content %}
   <h2 id="market-criteria">{{ market.outcome }}</h2>
 
-  <hr>
   <form id="order_create" action="{{ url_for('order.create') }}" method="post">
     {# Default configuration: buy / market #}
     <input type="hidden" name="market_id" value="{{ market.id }}">
@@ -59,11 +58,58 @@
     </div>
   </form>
 
-  <h2>Orders</h2>
+  <hr>
+  <div id="orders">
+    <div>
+      <h2>Buy Orders</h2>
+      {% for eo in orders
+          | selectattr('order.order_direction', 'equalto', 'buy')
+          | sort(attribute='order.price_cents', reverse=True) %}
+        <li class="order order-buy">
+          {% set order = eo.order %}
+          {% set creator = eo.creator %}
+          <p class="order-amount">
+            <span class="order-quantity">{{ order.quantity }}x</span>
+            <span class="order-price">{{ fmt_price(order.price_cents) }}</span>
+          </p>
+          <p class="order-creator">
+            Submitted {{ timedelta_from(order.created_at) }}
+            by {{ creator.display_name }}
+          </p>
+          <p class="order-expiry">
+            Expires {{ timedelta_from(order.expires_at) }}
+          </p>
+          <img src="{{ discord_avatar_url(user.id, user.avatar_hash) }}"
+               alt="Avatar for {{ user.display_name }}"/>
+        </li>
+      {% endfor %}
+    </div>
+    <div>
+      <h2>Sell Orders</h2>
+      {% for eo in orders
+          | selectattr('order.order_direction', 'equalto', 'sell')
+          | sort(attribute='order.price_cents') %}
+        <li class="order order-sell">
+          {% set order = eo.order %}
+          {% set creator = eo.creator %}
+          <p class="order-amount">
+            <span class="order-price">{{ fmt_price(order.price_cents) }}</span>
+            <span class="order-quantity">x{{ order.quantity }}</span>
+          </p>
+          <p class="order-creator">
+            Submitted {{ timedelta_from(order.created_at) }}
+            by {{ creator.display_name }}
+          </p>
+          <p class="order-expiry">
+            Expires {{ timedelta_from(order.expires_at) }}
+          </p>
+          <img src="{{ discord_avatar_url(user.id, user.avatar_hash) }}"
+               alt="Avatar for {{ user.display_name }}"/>
+        </li>
+      {% endfor %}
+    </div>
+  </div>
   <ul>
-    {% for order in orders %}
-      <li>{{ order }}</li>
-    {% endfor %}
   </ul>
 
   <script>

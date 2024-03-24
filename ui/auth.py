@@ -67,8 +67,10 @@ def oauth_callback():
         "scope": "identify",
     }
     url = f"https://discord.com/api/oauth2/token"
-    auth = (flask.current_app.config["DISCORD_CLIENT_ID"],
-            flask.current_app.config["DISCORD_CLIENT_SECRET"])
+    auth = (
+        flask.current_app.config["DISCORD_CLIENT_ID"],
+        flask.current_app.config["DISCORD_CLIENT_SECRET"],
+    )
     res = requests.post(url, data=token_data, auth=auth)
     if res.status_code != 200:
         return "Failed to get access token."

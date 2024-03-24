@@ -248,3 +248,83 @@ img.avatar-mini {
     gap: 0.25rem;
     align-items: center;
 }
+
+#orders {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.order {
+    list-style: none;
+    background-color: #f8fafc; /* slate 50 */
+    border: 1px solid #e2e8f0; /* slate 200 */
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    margin-top: 0.5rem;
+    display: grid;
+    align-items: center;
+
+    img {
+        grid-area: avatar;
+        height: 3rem;
+        border-radius: 1.5rem;
+        box-shadow: 0 0 0 1px #e2e8f0; /* slate 200 */
+    }
+
+    .order-amount {
+        grid-area: order_amount;
+    }
+
+    .order-quantity {
+        color: #94a3b8; /* slate 400 */
+    }
+
+    .order-price {
+        font-size: 2em;
+        letter-spacing: -0.1em;
+    }
+
+    .order-expiry {
+        grid-area: order_expiry;
+        font-size: 0.75em;
+        color: #94a3b8; /* slate 400 */
+    }
+
+    .order-creator {
+        grid-area: order_creator;
+        color: #334155; /* slate 700 */
+    }
+}
+
+.order-buy {
+    grid-template-areas:
+    "avatar order_creator order_amount"
+    "avatar order_creator order_expiry";
+    justify-items: center;
+    grid-template-columns: min-content 2fr 1fr;
+
+    .order-amount, .order-expiry {
+        justify-self: end;
+    }
+
+    .order-price {
+        color: #15803d; /* green 700 */
+    }
+}
+
+.order-sell {
+    grid-template-areas:
+    "order_amount order_creator avatar"
+    "order_expiry order_creator avatar";
+    justify-items: center;
+    grid-template-columns: 1fr 2fr min-content;
+
+    .order-amount, .order-expiry {
+        justify-self: start;
+    }
+
+    .order-price {
+        color: #991b1b; /* red 800 */
+    }
+}

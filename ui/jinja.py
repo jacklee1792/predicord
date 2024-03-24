@@ -17,3 +17,7 @@ def timedelta_from(timestamp: int) -> str:
     """
     delta = datetime.now() - datetime.fromtimestamp(timestamp / 1000)
     return humanize.naturaltime(delta)
+
+
+def fmt_price(price_cents: int) -> str:
+    return f"{price_cents / 1000:.3f}"

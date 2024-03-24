@@ -27,12 +27,10 @@ def create_app(test_config=None):
 
     app.jinja_env.globals.update(discord_avatar_url=jinja.discord_avatar_url)
     app.jinja_env.globals.update(timedelta_from=jinja.timedelta_from)
+    app.jinja_env.globals.update(fmt_price=jinja.fmt_price)
 
     # App config
     app.config["SESSION_TYPE"] = "filesystem"
-    client_id = os.getenv("DISCORD_CLIENT_ID")
-    client_secret = os.getenv("DISCORD_CLIENT_SECRET")
-    redirect_uri = os.getenv("DISCORD_REDIRECT_URI")
     for var in "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "DISCORD_REDIRECT_URI":
         val = os.getenv(var)
         assert val is not None, f"Missing environment variable: {var}"
