@@ -7,23 +7,9 @@ import flask
 import requests
 from flask import Blueprint
 
+from db.objects import User
+
 bp = Blueprint("auth", __name__, url_prefix="/auth")
-
-
-@dataclass
-class OAuthParams:
-    client_id: str
-    client_secret: str
-    redirect_uri: str
-
-
-@functools.lru_cache(1)
-def get_oauth_params():
-    return OAuthParams(
-        client_id=os.getenv("DISCORD_CLIENT_ID"),
-        client_secret=os.getenv("DISCORD_CLIENT_SECRET"),
-        redirect_uri=os.getenv("DISCORD_REDIRECT_URI"),
-    )
 
 
 def require_login(f):
@@ -33,7 +19,7 @@ def require_login(f):
 
     @functools.wraps(f)
     def wrapped_f(*args, **kwargs):
-        if "user_id" not in flask.session:
+        if "user" not in flask.session:
             return flask.redirect(flask.url_for("auth.login"))
         return f(*args, **kwargs)
 
@@ -46,10 +32,9 @@ def login():
     Redirects the user to the Discord OAuth2 login page.
     """
     url = "https://discord.com/api/oauth2/authorize?"
-    oauth = get_oauth_params()
     params = {
-        "client_id": oauth.client_id,
-        "redirect_uri": oauth.redirect_uri,
+        "client_id": flask.current_app.config["DISCORD_CLIENT_ID"],
+        "redirect_uri": flask.current_app.config["DISCORD_REDIRECT_URI"],
         "response_type": "code",
         "scope": "identify",
     }
@@ -75,17 +60,18 @@ def oauth_callback():
         return "Error: No authorization code provided."
 
     # 1. Exchange the authorization code for an access token
-    oauth = get_oauth_params()
     token_data = {
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": oauth.redirect_uri,
+        "redirect_uri": flask.current_app.config["DISCORD_REDIRECT_URI"],
         "scope": "identify",
     }
     url = f"https://discord.com/api/oauth2/token"
-    res = requests.post(
-        url, data=token_data, auth=(oauth.client_id, oauth.client_secret)
+    auth = (
+        flask.current_app.config["DISCORD_CLIENT_ID"],
+        flask.current_app.config["DISCORD_CLIENT_SECRET"],
     )
+    res = requests.post(url, data=token_data, auth=auth)
     if res.status_code != 200:
         return "Failed to get access token."
 
@@ -97,5 +83,9 @@ def oauth_callback():
     res = requests.get(url, headers=headers)
     if res.status_code != 200:
         return "Failed to get user info."
-    flask.session["user_id"] = res.json()["user"]["id"]
+    info = res.json()["user"]
+    user_id, name, avatar_hash = info["id"], info["global_name"], info["avatar"]
+    flask.session["user"] = User(id=user_id, display_name=name, avatar_hash=avatar_hash)
+    with flask.g.db as db:
+        db.upsert_user(discord_id=user_id, display_name=name, avatar_hash=avatar_hash)
     return flask.redirect(flask.url_for("index"))

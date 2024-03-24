@@ -7,10 +7,10 @@ class Market:
     id: int  # auto
     name: str
     creator_id: int
-    created_at: float  # auto
+    created_at: int  # auto
     outcome: str
     payout_cents: Optional[int]
-    resolved_at: Optional[float]
+    resolved_at: Optional[int]
 
 
 @dataclass
@@ -22,8 +22,8 @@ class Order:
     order_direction: Literal["buy", "sell"]
     price_cents: int
     quantity: int
-    created_at: float  # auto
-    expires_at: float
+    created_at: int  # auto
+    expires_at: int
 
 
 @dataclass
@@ -34,4 +34,17 @@ class Trade:
     seller_id: int
     price_cents: int
     quantity: int
-    timestamp: float
+    timestamp: int
+
+
+@dataclass
+class User:
+    id: int
+    display_name: str
+    avatar_hash: str
+
+
+@dataclass
+class ExpandedOrder:
+    order: Order
+    creator: User

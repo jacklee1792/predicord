@@ -1,11 +1,14 @@
 {% extends 'base.html' %}
-{% block header %}<h1>Create a market</h1>{% endblock %}
+{% block title %}New Market{% endblock %}
 {% block content %}
-  <form method="post">
-    <label for="name">Name</label>
-    <input type="text" name="name" id="name" required>
-    <label for="criteria">Criteria</label>
-    <input type="text" name="criteria" id="criteria" required>
-    <input type="submit" value="Create">
-  </form>
+  <div class="narrow-container">
+    <form method="post">
+      <h1>New Market</h1>
+      <label for="name">Name</label>
+      <input type="text" name="name" id="name" required>
+      <label for="criteria">Criteria</label>
+      <input type="text" name="criteria" id="criteria" required></input>
+      <input type="submit" value="Create">
+    </form>
+  </div>
 {% endblock %}
